@@ -4,6 +4,7 @@ import json
 import subprocess
 import requests
 import os
+import time
 from credentials import API_KEY, SECRET_KEY
 
 logging.basicConfig(level=logging.INFO)
@@ -65,6 +66,7 @@ def pin_with_pinata(cid, name):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
+    parser.add_argument('--pinata', action="store_true", default=False, help='Pin to pinata')
     args = vars(parser.parse_args())
 
     files_to_upload = sorted(get_files(args['input']))
@@ -81,10 +83,12 @@ if __name__ == '__main__':
         # Get name of file
         name = os.path.basename(fp)
 
-        is_successful = pin_with_pinata(cid, name)
+        if args['pinata']:
+            is_successful = pin_with_pinata(cid, name)
+            if not is_successful:
+                logger.error(f'{name} did not successfully get pinned')
 
-        if is_successful:
-            info[name] = {'cid': cid}
+        info[name] = {'cid': cid}
 
     with open(f'{args["input"]}/results.json', 'w') as f:
         json.dump(info, f, indent=4)
