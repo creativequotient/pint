@@ -6,9 +6,10 @@ Automatically pin files to IPFS via Pianta
 
 ### Set up configuration file
 
-In the root directory of Pint, create a file named `credentials.py`
-and define two variables - `API_KEY` and `SECRET_KEY` which correspond
-to the credentials for your Pinata API.
+In the root directory of Pint, create a file named `.env` and define
+two variables - `API_KEY` and `SECRET_KEY` which correspond to the
+credentials for your Pinata API. A sample `.env` file has been
+provided
 
 ### Uploading files
 

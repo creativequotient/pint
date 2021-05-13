@@ -5,10 +5,12 @@ import subprocess
 import requests
 import os
 import time
-from credentials import API_KEY, SECRET_KEY
+from dotenv import dotenv_values
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+credentials = dotenv_values(".env")
 
 
 def get_files(dir_path, exts=['.jpeg', '.jpg', '.png', '.gif', '.mp4']):
@@ -47,8 +49,8 @@ def pin_with_pinata(cid, name):
     }
 
     headers = {
-        'pinata_api_key': API_KEY,
-        'pinata_secret_api_key': SECRET_KEY
+        'pinata_api_key': credentials['API_Key'],
+        'pinata_secret_api_key': credentials['API_Secret']
     }
 
     req = requests.post('https://api.pinata.cloud/pinning/pinByHash',
@@ -84,6 +86,8 @@ if __name__ == '__main__':
         name = os.path.basename(fp)
 
         if args['pinata']:
+            # Sleep to circumvent Pinata rate limitation
+            time.sleep(0.75)
             is_successful = pin_with_pinata(cid, name)
             if not is_successful:
                 logger.error(f'{name} did not successfully get pinned')
