@@ -18,9 +18,10 @@ def get_files(dir_path, exts=['.jpeg', '.jpg', '.png', '.gif', '.mp4', '.wav', '
 
     result = []
 
-    for candidate in candidate_paths:
+    for candidate in sorted(candidate_paths):
         for ext in exts:
             if candidate.endswith(ext):
+                logger.info(f'Candidate for pinning found {candidate}')
                 result.append(candidate)
                 break
 
@@ -29,6 +30,8 @@ def get_files(dir_path, exts=['.jpeg', '.jpg', '.png', '.gif', '.mp4', '.wav', '
 
 def pin_with_pinata(fp):
     'Pin to Pinata by hash'
+
+    logger.info(f'Attempting to pin {fp}')
 
     with open(fp, 'rb') as file_to_upload:
         body = {
@@ -45,37 +48,51 @@ def pin_with_pinata(fp):
                             headers=headers)
         file_to_upload.close()
 
-    cid = req.json()['IpfsHash']
-
     if not req.ok:
-        logger.error(f'Error encountered when pinning to pinata\n{req}')
+        logger.error(f'Error encountered when pinning to pinata\n{req.content}')
         return False, _
 
-    logger.info(f'Pinned {fp}')
+    cid = req.json()['IpfsHash']
+
+
+    logger.info(f'Successfully pinned {fp} with cid {cid}')
+
     return True, cid
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
-    parser.add_argument('--pinata', action="store_true", default=False, help='Pin to pinata')
+    parser.add_argument('-o', '--override', help='Pin files from scratch, do not ignore files that have already been pinned', required=False)
     args = vars(parser.parse_args())
+
+
+
+    results_fp = f'{args["input"]}/results.json'
 
     files_to_upload = sorted(get_files(args['input']))
 
-    info = {}
+    if os.path.exists(results_fp) and not args['override']:
+        with open(results_fp, 'r') as f:
+            info = json.load(f)
+            f.close()
+    else:
+        info = {}
 
     for idx, fp in enumerate(files_to_upload):
         name = os.path.basename(fp)
+
+        if name in info:
+            logger.info(f'{name} already pinned')
+            continue
+
         is_successful, cid = pin_with_pinata(fp)
+
         if not is_successful:
             logger.error(f'{name} did not successfully get pinned')
 
         info[name] = {'cid': cid}
 
-        if idx > 0 and idx % 500 == 0:
-            with open(f'{args["input"]}/results_{idx}.json', 'w') as f:
-                json.dump(info, f, indent=4)
-
-    with open(f'{args["input"]}/results.json', 'w') as f:
-        json.dump(info, f, indent=4)
+        with open(results_fp, 'w') as f:
+            json.dump(info, f, indent=4)
+            f.close()
