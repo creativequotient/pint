@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 credentials = dotenv_values(".env")
 
 
-def get_files(dir_path, exts=['.jpeg', '.jpg', '.png', '.gif', '.mp4', '.wav', '.gltf']):
+def get_files(dir_path, exts=['.jpeg', '.avi', '.jpg', '.png', '.gif', '.mp4', '.wav', '.gltf']):
     candidate_paths = os.listdir(dir_path)
 
     result = []
@@ -50,10 +50,9 @@ def pin_with_pinata(fp):
 
     if not req.ok:
         logger.error(f'Error encountered when pinning to pinata\n{req.content}')
-        return False, _
+        return False, ''
 
     cid = req.json()['IpfsHash']
-
 
     logger.info(f'Successfully pinned {fp} with cid {cid}')
 
@@ -63,14 +62,13 @@ def pin_with_pinata(fp):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
-    parser.add_argument('-o', '--override', help='Pin files from scratch, do not ignore files that have already been pinned', required=False)
+    parser.add_argument('-o', '--override', help='Pin files from scratch, do not ignore files that have already been pinned', default=False, required=False, action='store_true')
+    parser.add_argument('-r', '--reverse', help='Pin files in verse', default=False, required=False, action='store_true')
     args = vars(parser.parse_args())
-
-
 
     results_fp = f'{args["input"]}/results.json'
 
-    files_to_upload = sorted(get_files(args['input']))
+    files_to_upload = sorted(get_files(args['input']), reverse=args['reverse'])
 
     if os.path.exists(results_fp) and not args['override']:
         with open(results_fp, 'r') as f:
@@ -80,19 +78,27 @@ if __name__ == '__main__':
         info = {}
 
     for idx, fp in enumerate(files_to_upload):
-        name = os.path.basename(fp)
 
-        if name in info:
-            logger.info(f'{name} already pinned')
+        try:
+            name = os.path.basename(fp)
+
+            if name in info:
+                if info[name]['cid'] != '':
+                    logger.info(f'{name} already pinned')
+                    continue
+
+            is_successful, cid = pin_with_pinata(fp)
+
+            if not is_successful:
+                logger.error(f'{name} did not successfully get pinned')
+                continue
+
+            info[name] = {'cid': cid}
+
+            with open(results_fp, 'w') as f:
+                json.dump(info, f, indent=4)
+                f.close()
+
+        except Exception as e:
+            print(e)
             continue
-
-        is_successful, cid = pin_with_pinata(fp)
-
-        if not is_successful:
-            logger.error(f'{name} did not successfully get pinned')
-
-        info[name] = {'cid': cid}
-
-        with open(results_fp, 'w') as f:
-            json.dump(info, f, indent=4)
-            f.close()

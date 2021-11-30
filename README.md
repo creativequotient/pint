@@ -17,3 +17,9 @@ Run `python upload_to_ipfs.py -i <directory>` where `<directory>` is
 the directory that contains all the assets to be uploaded. When
 successful, a file named `results.json` will be written to
 `<directory>` which contains the CID of each file uploaded.
+
+### Uploading directories
+
+Run `python upload_directory_to_ipfs.py -i <directory>` where `<diretory>`
+is the directory that is to be pinned on IPFS. The CID returned is for the
+entire directory and not individual files.
