@@ -10,8 +10,6 @@ from dotenv import dotenv_values
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-credentials = dotenv_values(".env")
-
 
 def get_files(dir_path, exts=['.jpeg', '.avi', '.jpg', '.png', '.gif', '.mp4', '.wav', '.gltf']):
     candidate_paths = os.listdir(dir_path)
@@ -62,9 +60,14 @@ def pin_with_pinata(fp):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
+    parser.add_argument('-e', '--env', help='Path to .env file to load', required=False, default='.env')
     parser.add_argument('-o', '--override', help='Pin files from scratch, do not ignore files that have already been pinned', default=False, required=False, action='store_true')
     parser.add_argument('-r', '--reverse', help='Pin files in verse', default=False, required=False, action='store_true')
     args = vars(parser.parse_args())
+
+    credentials = dotenv_values(args['env'])
+
+    logger.info(f'Loading .env file from {args["env"]}')
 
     results_fp = f'{args["input"]}/results.json'
 

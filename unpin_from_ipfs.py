@@ -11,8 +11,6 @@ from dotenv import dotenv_values
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-credentials = dotenv_values(".env")
-
 
 def unpin_from_pinata(cid):
     url = f'https://api.pinata.cloud/pinning/unpin/{cid}'
@@ -33,8 +31,13 @@ def unpin_from_pinata(cid):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Batch IPFS file uploading')
+    parser.add_argument('-e', '--env', help='Path to .env file to load', required=False, default='.env')
     parser.add_argument('-i', '--input', help='Path to directory containing media to upload', required=True)
     args = vars(parser.parse_args())
+
+    credentials = dotenv_values(args['env'])
+
+    logger.info(f'Loading .env file from {args["env"]}')
 
     with open(args['input'], 'r') as f:
         ipfs_cids = list(map(lambda l: l.strip(), f.readlines()))
